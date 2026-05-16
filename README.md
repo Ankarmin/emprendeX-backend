@@ -1,106 +1,187 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# EmprendeX Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend en NestJS para `EmprendeX`, organizado por módulos y conectado a PostgreSQL con TypeORM.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Estado actual
 
-## Description
+Primera entrega enfocada en autenticación:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- Login con `email` y `password`
+- Registro con creación real de usuario
+- JWT para sesión autenticada
+- Endpoint para obtener el usuario actual
+- Migración inicial de tabla `users`
+- Usuario semilla configurable por entorno
+- Healthcheck para despliegue y verificación
 
-## Project setup
+## Stack
 
-```bash
-$ npm install
-```
+- NestJS 11
+- TypeORM
+- PostgreSQL
+- JWT
+- bcrypt
+- class-validator
 
-## Compile and run the project
+## Variables de entorno
 
-```bash
-# development
-$ npm run start
+Usa `.env.example` como referencia.
 
-# watch mode
-$ npm run start:dev
+Variables clave:
 
-# production mode
-$ npm run start:prod
-```
+- `DATABASE_PUBLIC_URL`
+- `DATABASE_SSL`
+- `JWT_SECRET`
+- `JWT_EXPIRES_IN`
+- `CORS_ORIGINS`
+- `APP_PUBLIC_URL`
+- `SEED_USER_EMAIL`
+- `SEED_USER_PASSWORD`
 
-## Run tests
+## Scripts
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
+npm run start:dev
+npm run build
+npm run lint:check
+npm run test:e2e
 ```
 
-## CI/CD
+## Endpoints disponibles
 
-This repository includes GitHub Actions workflows for continuous integration and deployment:
+Base local:
 
-- `CI` runs on pull requests and pushes to `main`/`master`. It installs dependencies with `npm ci`, checks formatting, runs ESLint, runs unit and e2e tests, and builds the NestJS app.
-- `CD` runs on pushes to `main`/`master`, version tags like `v1.0.0`, or manual dispatch. It validates the project, runs unit and e2e tests, builds `dist`, prunes development dependencies, and uploads a production artifact.
-- To trigger an external deployment after the artifact is created, configure `DEPLOY_WEBHOOK_URL` in GitHub Actions secrets. Optionally configure `DEPLOY_WEBHOOK_TOKEN` if the webhook requires bearer authentication.
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```text
+http://localhost:3000/api/v1
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Base productiva esperada:
 
-## Resources
+```text
+https://emprendex-backend-production.up.railway.app/api/v1
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+### `POST /auth/login`
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Request:
 
-## Support
+```json
+{
+  "email": "admin@emprendex.app",
+  "password": "EmprendeX123!"
+}
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Response:
 
-## Stay in touch
+```json
+{
+  "accessToken": "jwt",
+  "tokenType": "Bearer",
+  "expiresIn": 86400,
+  "requiresOnboarding": true,
+  "user": {
+    "id": "uuid",
+    "email": "admin@emprendex.app",
+    "onboardingCompleted": false,
+    "enabledModuleIds": [],
+    "businessProfile": {
+      "name": null,
+      "category": null,
+      "currencyCode": null
+    }
+  }
+}
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### `POST /auth/register`
 
-## License
+Request:
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```json
+{
+  "email": "nuevo@emprendex.app",
+  "password": "Registro123!",
+  "businessName": "Dulce Taller",
+  "businessCategory": "Pasteleria personalizada",
+  "currencyCode": "PEN"
+}
+```
+
+Response:
+
+```json
+{
+  "accessToken": "jwt",
+  "tokenType": "Bearer",
+  "expiresIn": 86400,
+  "requiresOnboarding": true,
+  "user": {
+    "id": "uuid",
+    "email": "nuevo@emprendex.app",
+    "onboardingCompleted": false,
+    "enabledModuleIds": [],
+    "businessProfile": {
+      "name": "Dulce Taller",
+      "category": "Pasteleria personalizada",
+      "currencyCode": "PEN"
+    }
+  }
+}
+```
+
+### `GET /auth/me`
+
+Headers:
+
+```text
+Authorization: Bearer <token>
+```
+
+### `PATCH /onboarding/setup`
+
+Request:
+
+```json
+{
+  "businessName": "Taller Norte",
+  "businessCategory": "Tecnología / Electrónica",
+  "currencyCode": "USD"
+}
+```
+
+Actualiza el perfil básico del negocio y mantiene el usuario dentro del onboarding si aún no eligió módulos.
+
+### `PUT /onboarding/modules`
+
+Request:
+
+```json
+{
+  "selectedModuleIds": ["operaciones", "clientes", "pagos"]
+}
+```
+
+Guarda los módulos elegidos y marca `onboardingCompleted=true`.
+
+### `GET /health`
+
+Devuelve el estado básico del servicio.
+
+## Flujo esperado para el frontend móvil
+
+Las pantallas `app/index.tsx` y `app/register.tsx` del frontend pueden enviar datos a `POST /auth/login` y `POST /auth/register`.
+
+Regla inicial sugerida:
+
+- Si `requiresOnboarding` es `true` y el negocio ya existe en perfil, navegar a `/onboarding/modules`
+- Si `requiresOnboarding` es `true` y aun no hay perfil de negocio, navegar a `/onboarding`
+- Si `requiresOnboarding` es `false`, navegar a `/(drawer)/(tabs)`
+
+## Siguiente bloque recomendado
+
+1. Hacer visibles/ocultables los módulos elegidos en drawer y tabs
+2. Sincronizar reordenamiento del sidebar con backend
+3. Añadir edición real del perfil de negocio desde configuración
+4. Añadir recuperación de contraseña
