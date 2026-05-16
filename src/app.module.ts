@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { validateEnvironment } from './config/environment.validation';
 import { HealthModule } from './health/health.module';
 import { typeOrmModuleOptions } from './database/typeorm.config';
+import { OnboardingModule } from './onboarding/onboarding.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { UsersModule } from './users/users.module';
     TypeOrmModule.forRootAsync(typeOrmModuleOptions),
     UsersModule,
     AuthModule,
+    OnboardingModule,
     HealthModule,
   ],
   controllers: [],
