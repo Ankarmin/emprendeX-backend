@@ -1,7 +1,26 @@
-import { IsEmail, IsIn, IsString, MaxLength, MinLength } from 'class-validator';
-import { SUPPORTED_CURRENCIES } from '../../users/users.constants';
+import {
+  IsEmail,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  firstName!: string;
+
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  lastName!: string;
+
+  @IsString()
+  @Matches(/^[0-9+()\-\s]{7,20}$/)
+  phone!: string;
+
   @IsEmail()
   email!: string;
 
@@ -12,15 +31,11 @@ export class RegisterDto {
 
   @IsString()
   @MinLength(2)
-  @MaxLength(120)
+  @MaxLength(100)
   businessName!: string;
 
   @IsString()
   @MinLength(2)
-  @MaxLength(120)
+  @MaxLength(100)
   businessCategory!: string;
-
-  @IsString()
-  @IsIn(SUPPORTED_CURRENCIES)
-  currencyCode!: (typeof SUPPORTED_CURRENCIES)[number];
 }

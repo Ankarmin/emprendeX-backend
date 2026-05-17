@@ -6,7 +6,7 @@ import { AuthStateResponse } from './types/auth-state-response.type';
 import { AuthSessionResponse } from './types/auth-session-response.type';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { UsersService } from '../users/users.service';
+import { type UserSessionState, UsersService } from '../users/users.service';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +21,7 @@ export class AuthService {
       loginDto.email,
     );
 
-    if (!user) {
+    if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -31,16 +31,24 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return this.buildSessionResponse(user);
+    const sessionState = await this.usersService.findById(user.id);
+
+    if (!sessionState) {
+      throw new UnauthorizedException('Session is no longer valid');
+    }
+
+    return this.buildSessionResponse(sessionState);
   }
 
   async register(registerDto: RegisterDto): Promise<AuthSessionResponse> {
     const user = await this.usersService.create({
+      firstNames: registerDto.firstName,
+      lastNames: registerDto.lastName,
+      phone: registerDto.phone,
       email: registerDto.email,
       password: registerDto.password,
       businessName: registerDto.businessName,
       businessCategory: registerDto.businessCategory,
-      currencyCode: registerDto.currencyCode,
     });
 
     return this.buildSessionResponse(user);
@@ -56,15 +64,9 @@ export class AuthService {
     return this.buildAuthStateResponse(user);
   }
 
-  private async buildSessionResponse(user: {
-    id: string;
-    email: string;
-    businessName: string | null;
-    businessCategory: string | null;
-    currencyCode: string | null;
-    onboardingCompleted: boolean;
-    enabledModuleIds: string[];
-  }): Promise<AuthSessionResponse> {
+  private async buildSessionResponse(
+    user: UserSessionState,
+  ): Promise<AuthSessionResponse> {
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,
       email: user.email,
@@ -78,24 +80,16 @@ export class AuthService {
       expiresIn: Number(
         this.configService.get<number>('JWT_EXPIRES_IN', 86400),
       ),
-      requiresOnboarding: !publicUser.onboardingCompleted,
+      requiresOnboarding: this.usersService.requiresOnboarding(user),
       user: publicUser,
     };
   }
 
-  private buildAuthStateResponse(user: {
-    id: string;
-    email: string;
-    businessName: string | null;
-    businessCategory: string | null;
-    currencyCode: string | null;
-    onboardingCompleted: boolean;
-    enabledModuleIds: string[];
-  }): AuthStateResponse {
+  private buildAuthStateResponse(user: UserSessionState): AuthStateResponse {
     const publicUser = this.usersService.toPublicUser(user);
 
     return {
-      requiresOnboarding: !publicUser.onboardingCompleted,
+      requiresOnboarding: this.usersService.requiresOnboarding(user),
       user: publicUser,
     };
   }
