@@ -28,3 +28,17 @@ export const MODULE_SEEDS: Array<{
   { moduleName: 'pagos', moduleType: ModuleType.Basic },
   { moduleName: 'reportes', moduleType: ModuleType.Premium },
 ];
+
+export const DEFAULT_UNIT_SEEDS = [
+  { unitName: 'Unidad', abbreviation: 'UND' },
+  { unitName: 'Caja', abbreviation: 'CJ' },
+  { unitName: 'Docena', abbreviation: 'DOC' },
+  { unitName: 'Paquete', abbreviation: 'PAQ' },
+] as const;
+
+export const DEFAULT_CATEGORY_SEEDS = [
+  { categoryName: 'Servicio general' },
+  { categoryName: 'Evento' },
+  { categoryName: 'Asesoría' },
+  { categoryName: 'Diseño' },
+] as const;

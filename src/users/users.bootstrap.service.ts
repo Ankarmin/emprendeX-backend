@@ -38,5 +38,7 @@ export class UsersBootstrapService implements OnModuleInit {
         'reportes',
       ],
     });
+
+    await this.usersService.ensureCatalogDefaultsForAllBusinesses();
   }
 }

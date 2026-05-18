@@ -14,6 +14,8 @@ import {
 } from 'typeorm';
 import { Business } from '../businesses/entities/business.entity';
 import { BusinessModule } from '../businesses/entities/business-module.entity';
+import { CategoryEntity } from '../catalog/entities/category.entity';
+import { UnitEntity } from '../catalog/entities/unit.entity';
 import {
   BusinessModuleStatus,
   PlanPeriod,
@@ -24,7 +26,11 @@ import { PlanPrice } from '../plans/entities/plan-price.entity';
 import { PublicUser } from './types/public-user.type';
 import { Subscription } from '../subscriptions/entities/subscription.entity';
 import { User } from './entities/user.entity';
-import { AVAILABLE_MODULE_IDS } from './users.constants';
+import {
+  AVAILABLE_MODULE_IDS,
+  DEFAULT_CATEGORY_SEEDS,
+  DEFAULT_UNIT_SEEDS,
+} from './users.constants';
 
 type SeedUserInput = {
   email: string;
@@ -101,6 +107,10 @@ export class UsersService {
     private readonly businessModulesRepository: Repository<BusinessModule>,
     @InjectRepository(FeatureModuleEntity)
     private readonly modulesRepository: Repository<FeatureModuleEntity>,
+    @InjectRepository(UnitEntity)
+    private readonly unitsRepository: Repository<UnitEntity>,
+    @InjectRepository(CategoryEntity)
+    private readonly categoriesRepository: Repository<CategoryEntity>,
     @InjectRepository(Subscription)
     private readonly subscriptionsRepository: Repository<Subscription>,
     @InjectRepository(PlanPrice)
@@ -253,7 +263,12 @@ export class UsersService {
           industry: businessCategory.trim(),
         });
 
-        await businessesRepository.save(business);
+        const savedBusiness = await businessesRepository.save(business);
+
+        await this.ensureCatalogDefaultsForBusiness(
+          savedBusiness.businessId,
+          manager,
+        );
 
         return savedUser;
       });
@@ -295,6 +310,10 @@ export class UsersService {
         existingBusiness.businessName = businessName.trim();
         existingBusiness.industry = businessCategory.trim();
         await businessesRepository.save(existingBusiness);
+        await this.ensureCatalogDefaultsForBusiness(
+          existingBusiness.businessId,
+          manager,
+        );
         return;
       }
 
@@ -304,7 +323,12 @@ export class UsersService {
         industry: businessCategory.trim(),
       });
 
-      await businessesRepository.save(business);
+      const savedBusiness = await businessesRepository.save(business);
+
+      await this.ensureCatalogDefaultsForBusiness(
+        savedBusiness.businessId,
+        manager,
+      );
     });
 
     return this.loadSessionState(userId);
@@ -385,6 +409,22 @@ export class UsersService {
     return !hasBusinessProfile || user.enabledModuleIds.length === 0;
   }
 
+  async ensureCatalogDefaultsForAllBusinesses(): Promise<void> {
+    const businesses = await this.businessesRepository.find({
+      select: {
+        businessId: true,
+      },
+    });
+
+    for (const business of businesses) {
+      await this.ensureCatalogDefaultsForBusiness(business.businessId);
+    }
+  }
+
+  async findPrimaryBusinessByUserId(userId: string): Promise<Business | null> {
+    return this.findPrimaryBusinessByUserIdInternal(userId);
+  }
+
   private async loadSessionState(
     userId: string,
     manager?: EntityManager,
@@ -402,7 +442,10 @@ export class UsersService {
       return null;
     }
 
-    const business = await this.findPrimaryBusinessByUserId(userId, manager);
+    const business = await this.findPrimaryBusinessByUserIdInternal(
+      userId,
+      manager,
+    );
     const enabledModuleIds = business
       ? await this.loadEnabledModuleIds(
           business.businessId,
@@ -431,7 +474,7 @@ export class UsersService {
     };
   }
 
-  private async findPrimaryBusinessByUserId(
+  private async findPrimaryBusinessByUserIdInternal(
     userId: string,
     manager?: EntityManager,
   ): Promise<Business | null> {
@@ -445,6 +488,62 @@ export class UsersService {
     });
 
     return businesses[0] ?? null;
+  }
+
+  private async ensureCatalogDefaultsForBusiness(
+    businessId: string,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const unitsRepository =
+      manager?.getRepository(UnitEntity) ?? this.unitsRepository;
+    const categoriesRepository =
+      manager?.getRepository(CategoryEntity) ?? this.categoriesRepository;
+
+    const existingUnits = await unitsRepository.find({
+      where: { businessId },
+      select: { unitName: true },
+    });
+    const existingUnitNames = new Set(
+      existingUnits.map((unit) => unit.unitName.trim().toLowerCase()),
+    );
+
+    const unitsToCreate = DEFAULT_UNIT_SEEDS.filter(
+      (unit) => !existingUnitNames.has(unit.unitName.trim().toLowerCase()),
+    ).map((unit) =>
+      unitsRepository.create({
+        businessId,
+        unitName: unit.unitName,
+        abbreviation: unit.abbreviation,
+      }),
+    );
+
+    if (unitsToCreate.length > 0) {
+      await unitsRepository.save(unitsToCreate);
+    }
+
+    const existingCategories = await categoriesRepository.find({
+      where: { businessId },
+      select: { categoryName: true },
+    });
+    const existingCategoryNames = new Set(
+      existingCategories.map((category) =>
+        category.categoryName.trim().toLowerCase(),
+      ),
+    );
+
+    const categoriesToCreate = DEFAULT_CATEGORY_SEEDS.filter(
+      (category) =>
+        !existingCategoryNames.has(category.categoryName.trim().toLowerCase()),
+    ).map((category) =>
+      categoriesRepository.create({
+        businessId,
+        categoryName: category.categoryName,
+      }),
+    );
+
+    if (categoriesToCreate.length > 0) {
+      await categoriesRepository.save(categoriesToCreate);
+    }
   }
 
   private async loadEnabledModuleIds(
