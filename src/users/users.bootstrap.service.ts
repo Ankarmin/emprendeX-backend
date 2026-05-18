@@ -39,6 +39,6 @@ export class UsersBootstrapService implements OnModuleInit {
       ],
     });
 
-    await this.usersService.ensureCatalogDefaultsForAllBusinesses();
+    await this.usersService.ensureProductosServiciosDefaultsForAllBusinesses();
   }
 }

@@ -265,7 +265,7 @@ export class UsersService {
 
         const savedBusiness = await businessesRepository.save(business);
 
-        await this.ensureCatalogDefaultsForBusiness(
+        await this.ensureProductosServiciosDefaultsForBusiness(
           savedBusiness.businessId,
           manager,
         );
@@ -310,7 +310,7 @@ export class UsersService {
         existingBusiness.businessName = businessName.trim();
         existingBusiness.industry = businessCategory.trim();
         await businessesRepository.save(existingBusiness);
-        await this.ensureCatalogDefaultsForBusiness(
+        await this.ensureProductosServiciosDefaultsForBusiness(
           existingBusiness.businessId,
           manager,
         );
@@ -325,7 +325,7 @@ export class UsersService {
 
       const savedBusiness = await businessesRepository.save(business);
 
-      await this.ensureCatalogDefaultsForBusiness(
+      await this.ensureProductosServiciosDefaultsForBusiness(
         savedBusiness.businessId,
         manager,
       );
@@ -409,7 +409,7 @@ export class UsersService {
     return !hasBusinessProfile || user.enabledModuleIds.length === 0;
   }
 
-  async ensureCatalogDefaultsForAllBusinesses(): Promise<void> {
+  async ensureProductosServiciosDefaultsForAllBusinesses(): Promise<void> {
     const businesses = await this.businessesRepository.find({
       select: {
         businessId: true,
@@ -417,7 +417,9 @@ export class UsersService {
     });
 
     for (const business of businesses) {
-      await this.ensureCatalogDefaultsForBusiness(business.businessId);
+      await this.ensureProductosServiciosDefaultsForBusiness(
+        business.businessId,
+      );
     }
   }
 
@@ -490,7 +492,7 @@ export class UsersService {
     return businesses[0] ?? null;
   }
 
-  private async ensureCatalogDefaultsForBusiness(
+  private async ensureProductosServiciosDefaultsForBusiness(
     businessId: string,
     manager?: EntityManager,
   ): Promise<void> {
