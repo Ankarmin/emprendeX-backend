@@ -612,10 +612,7 @@ export class ProductosServiciosService {
   }
 
   private generateUnitAbbreviation(unitName: string): string {
-    const words = unitName
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
+    const words = unitName.trim().split(/\s+/).filter(Boolean);
 
     const abbreviation =
       words.length > 1
