@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { SubscriptionStatus } from '../../database/database.enums';
 import { PlanPrice } from '../../plans/entities/plan-price.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -31,14 +32,18 @@ export class Subscription {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'userId' })
   user!: User;
 
-  @CreateDateColumn({ name: 'start_date', type: 'timestamp' })
+  @Column({ type: 'timestamp', name: 'start_date' })
   startDate!: Date;
 
   @Column({ type: 'timestamp', name: 'end_date' })
   endDate!: Date;
 
-  @Column({ type: 'boolean', name: 'status', default: true })
-  status!: boolean;
+  @Column({
+    type: 'enum',
+    enum: SubscriptionStatus,
+    enumName: 'subscription_status_enum',
+  })
+  status!: SubscriptionStatus;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt!: Date;
