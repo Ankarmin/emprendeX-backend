@@ -13,7 +13,7 @@ export const typeOrmModuleOptions: TypeOrmModuleAsyncOptions = {
     type: 'postgres',
     url: configService.getOrThrow<string>('DATABASE_PUBLIC_URL'),
     entities: databaseEntities,
-    synchronize: false,
+    synchronize: configService.get<string>('NODE_ENV') !== 'production',
     ssl: isSslEnabled(configService)
       ? {
           rejectUnauthorized: false,
