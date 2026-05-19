@@ -10,7 +10,7 @@ export class Plan {
   @Column({ type: 'varchar', name: 'name', length: 100 })
   name!: string;
 
-  @Column({ type: 'varchar', name: 'description', length: 100 })
+  @Column({ type: 'varchar', name: 'description', length: 150 })
   description!: string;
 
   @Column({

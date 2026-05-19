@@ -10,7 +10,7 @@ export class FeatureModuleEntity {
   @Column({ type: 'varchar', name: 'module_name', length: 100 })
   moduleName!: string;
 
-  @Column({ type: 'varchar', name: 'code', length: 100 })
+  @Column({ type: 'varchar', name: 'code', length: 50, unique: true })
   code!: string;
 
   @Column({
