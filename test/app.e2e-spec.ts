@@ -28,15 +28,35 @@ describe('AppModule (e2e)', () => {
     jest.doMock('../src/catalog/catalog.module', () => ({
       ProductosServiciosModule: createEmptyModule(),
     }));
+    jest.doMock('../src/calendar/calendar.module', () => ({
+      CalendarModule: createEmptyModule(),
+    }));
+    jest.doMock('../src/customers/customers.module', () => ({
+      CustomersModule: createEmptyModule(),
+    }));
+    jest.doMock('../src/finance/finance.module', () => ({
+      FinanceModule: createEmptyModule(),
+    }));
     jest.doMock('../src/onboarding/onboarding.module', () => ({
       OnboardingModule: createEmptyModule(),
+    }));
+    jest.doMock('../src/plans/plans.module', () => ({
+      PlansModule: createEmptyModule(),
+    }));
+    jest.doMock('../src/reports/reports.module', () => ({
+      ReportsModule: createEmptyModule(),
+    }));
+    jest.doMock('../src/sales/sales.module', () => ({
+      SalesModule: createEmptyModule(),
     }));
     jest.doMock('../src/users/users.module', () => ({
       UsersModule: createEmptyModule(),
     }));
     jest.doMock('@nestjs/typeorm', () => ({
+      InjectRepository: jest.fn(() => jest.fn()),
       TypeOrmModule: {
         forRootAsync: jest.fn(() => createEmptyModule()),
+        forFeature: jest.fn(() => createEmptyModule()),
       },
     }));
 
