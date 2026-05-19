@@ -19,9 +19,28 @@ import { ItemEntity } from './entities/item.entity';
 import { ProductEntity } from './entities/product.entity';
 import { ProductosServiciosEntity } from './entities/service.entity';
 import { UnitEntity } from './entities/unit.entity';
+import { CreateCategoryDto } from './dto/create-category.dto';
 import { CreateItemDto } from './dto/create-item.dto';
+import { CreateUnitDto } from './dto/create-unit.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { UpdateUnitDto } from './dto/update-unit.dto';
 import { BusinessModuleStatus, ItemClass } from '../database/database.enums';
+
+type UnitResponse = {
+  unitId: string;
+  businessId: string;
+  unitName: string;
+  abbreviation: string;
+  createdAt: string;
+};
+
+type CategoryResponse = {
+  categoryId: string;
+  businessId: string;
+  categoryName: string;
+  createdAt: string;
+};
 
 type ProductosServiciosItemResponse = {
   id: string;
@@ -70,7 +89,7 @@ export class ProductosServiciosService {
     private readonly servicesRepository: Repository<ProductosServiciosEntity>,
   ) {}
 
-  async getUnits(userId: string) {
+  async getUnits(userId: string): Promise<UnitResponse[]> {
     const business = await this.getBusinessOrThrow(userId);
 
     const units = await this.unitsRepository.find({
@@ -78,14 +97,90 @@ export class ProductosServiciosService {
       order: { createdAt: 'ASC', unitName: 'ASC' },
     });
 
-    return units.map((unit) => ({
-      unitId: unit.unitId,
-      unitName: unit.unitName,
-      abbreviation: unit.abbreviation,
-    }));
+    return units.map((unit) => this.mapUnit(unit));
   }
 
-  async getCategories(userId: string) {
+  async createUnit(
+    userId: string,
+    createUnitDto: CreateUnitDto,
+  ): Promise<UnitResponse> {
+    const business = await this.getBusinessOrThrow(userId);
+
+    const existingUnit = await this.findUnitByName(
+      business.businessId,
+      createUnitDto.unitName,
+      this.unitsRepository,
+    );
+
+    if (existingUnit) {
+      throw new ConflictException('The unit name is already registered');
+    }
+
+    const unit = this.unitsRepository.create({
+      businessId: business.businessId,
+      unitName: createUnitDto.unitName.trim(),
+      abbreviation: this.resolveUnitAbbreviation(
+        createUnitDto.unitName,
+        createUnitDto.abbreviation,
+      ),
+    });
+
+    return this.mapUnit(await this.unitsRepository.save(unit));
+  }
+
+  async updateUnit(
+    userId: string,
+    unitId: string,
+    updateUnitDto: UpdateUnitDto,
+  ): Promise<UnitResponse> {
+    const business = await this.getBusinessOrThrow(userId);
+    const unit = await this.getUnitOrThrow(business.businessId, unitId);
+
+    if (updateUnitDto.unitName) {
+      const existingUnit = await this.findUnitByName(
+        business.businessId,
+        updateUnitDto.unitName,
+        this.unitsRepository,
+      );
+
+      if (existingUnit && existingUnit.unitId !== unit.unitId) {
+        throw new ConflictException('The unit name is already registered');
+      }
+
+      unit.unitName = updateUnitDto.unitName.trim();
+    }
+
+    if (updateUnitDto.unitName || updateUnitDto.abbreviation !== undefined) {
+      unit.abbreviation = this.resolveUnitAbbreviation(
+        unit.unitName,
+        updateUnitDto.abbreviation,
+      );
+    }
+
+    return this.mapUnit(await this.unitsRepository.save(unit));
+  }
+
+  async deleteUnit(userId: string, unitId: string): Promise<void> {
+    const business = await this.getBusinessOrThrow(userId);
+    await this.getUnitOrThrow(business.businessId, unitId);
+
+    const linkedProductsCount = await this.productsRepository.count({
+      where: { unitId },
+    });
+
+    if (linkedProductsCount > 0) {
+      throw new ConflictException(
+        'Cannot delete unit because it is assigned to products',
+      );
+    }
+
+    await this.unitsRepository.delete({
+      unitId,
+      businessId: business.businessId,
+    });
+  }
+
+  async getCategories(userId: string): Promise<CategoryResponse[]> {
     const business = await this.getBusinessOrThrow(userId);
 
     const categories = await this.categoriesRepository.find({
@@ -93,10 +188,82 @@ export class ProductosServiciosService {
       order: { createdAt: 'ASC', categoryName: 'ASC' },
     });
 
-    return categories.map((category) => ({
-      categoryId: category.categoryId,
-      categoryName: category.categoryName,
-    }));
+    return categories.map((category) => this.mapCategory(category));
+  }
+
+  async createCategory(
+    userId: string,
+    createCategoryDto: CreateCategoryDto,
+  ): Promise<CategoryResponse> {
+    const business = await this.getBusinessOrThrow(userId);
+
+    const existingCategory = await this.findCategoryByName(
+      business.businessId,
+      createCategoryDto.categoryName,
+      this.categoriesRepository,
+    );
+
+    if (existingCategory) {
+      throw new ConflictException('The category name is already registered');
+    }
+
+    const category = this.categoriesRepository.create({
+      businessId: business.businessId,
+      categoryName: createCategoryDto.categoryName.trim(),
+    });
+
+    return this.mapCategory(await this.categoriesRepository.save(category));
+  }
+
+  async updateCategory(
+    userId: string,
+    categoryId: string,
+    updateCategoryDto: UpdateCategoryDto,
+  ): Promise<CategoryResponse> {
+    const business = await this.getBusinessOrThrow(userId);
+    const category = await this.getCategoryOrThrow(
+      business.businessId,
+      categoryId,
+    );
+
+    if (updateCategoryDto.categoryName) {
+      const existingCategory = await this.findCategoryByName(
+        business.businessId,
+        updateCategoryDto.categoryName,
+        this.categoriesRepository,
+      );
+
+      if (
+        existingCategory &&
+        existingCategory.categoryId !== category.categoryId
+      ) {
+        throw new ConflictException('The category name is already registered');
+      }
+
+      category.categoryName = updateCategoryDto.categoryName.trim();
+    }
+
+    return this.mapCategory(await this.categoriesRepository.save(category));
+  }
+
+  async deleteCategory(userId: string, categoryId: string): Promise<void> {
+    const business = await this.getBusinessOrThrow(userId);
+    await this.getCategoryOrThrow(business.businessId, categoryId);
+
+    const linkedServicesCount = await this.servicesRepository.count({
+      where: { categoryId },
+    });
+
+    if (linkedServicesCount > 0) {
+      throw new ConflictException(
+        'Cannot delete category because it is assigned to services',
+      );
+    }
+
+    await this.categoriesRepository.delete({
+      categoryId,
+      businessId: business.businessId,
+    });
   }
 
   async getItems(userId: string): Promise<ProductosServiciosItemResponse[]> {
@@ -541,13 +708,11 @@ export class ProductosServiciosService {
       throw new BadRequestException('Unit is required for products');
     }
 
-    const existingUnit = await unitsRepository
-      .createQueryBuilder('unit')
-      .where('unit.business_id = :businessId', { businessId })
-      .andWhere('LOWER(unit.unit_name) = LOWER(:unitName)', {
-        unitName: normalizedUnitName,
-      })
-      .getOne();
+    const existingUnit = await this.findUnitByName(
+      businessId,
+      normalizedUnitName,
+      unitsRepository,
+    );
 
     if (existingUnit) {
       return existingUnit;
@@ -591,13 +756,11 @@ export class ProductosServiciosService {
       throw new BadRequestException('Category is required for services');
     }
 
-    const existingCategory = await categoriesRepository
-      .createQueryBuilder('category')
-      .where('category.business_id = :businessId', { businessId })
-      .andWhere('LOWER(category.category_name) = LOWER(:categoryName)', {
-        categoryName: normalizedCategoryName,
-      })
-      .getOne();
+    const existingCategory = await this.findCategoryByName(
+      businessId,
+      normalizedCategoryName,
+      categoriesRepository,
+    );
 
     if (existingCategory) {
       return existingCategory;
@@ -623,6 +786,96 @@ export class ProductosServiciosService {
         : unitName.trim().slice(0, 10).toUpperCase();
 
     return abbreviation.slice(0, 10);
+  }
+
+  private resolveUnitAbbreviation(
+    unitName: string,
+    abbreviation: string | undefined,
+  ): string {
+    const normalizedAbbreviation = abbreviation?.trim();
+
+    if (normalizedAbbreviation) {
+      return normalizedAbbreviation.toUpperCase();
+    }
+
+    return this.generateUnitAbbreviation(unitName);
+  }
+
+  private mapUnit(unit: UnitEntity): UnitResponse {
+    return {
+      unitId: unit.unitId,
+      businessId: unit.businessId,
+      unitName: unit.unitName,
+      abbreviation: unit.abbreviation,
+      createdAt: unit.createdAt.toISOString(),
+    };
+  }
+
+  private mapCategory(category: CategoryEntity): CategoryResponse {
+    return {
+      categoryId: category.categoryId,
+      businessId: category.businessId,
+      categoryName: category.categoryName,
+      createdAt: category.createdAt.toISOString(),
+    };
+  }
+
+  private async getUnitOrThrow(
+    businessId: string,
+    unitId: string,
+  ): Promise<UnitEntity> {
+    const unit = await this.unitsRepository.findOne({
+      where: { unitId, businessId },
+    });
+
+    if (!unit) {
+      throw new NotFoundException('Unit not found');
+    }
+
+    return unit;
+  }
+
+  private async getCategoryOrThrow(
+    businessId: string,
+    categoryId: string,
+  ): Promise<CategoryEntity> {
+    const category = await this.categoriesRepository.findOne({
+      where: { categoryId, businessId },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    return category;
+  }
+
+  private findUnitByName(
+    businessId: string,
+    unitName: string,
+    unitsRepository: Repository<UnitEntity>,
+  ): Promise<UnitEntity | null> {
+    return unitsRepository
+      .createQueryBuilder('unit')
+      .where('unit.business_id = :businessId', { businessId })
+      .andWhere('LOWER(unit.unit_name) = LOWER(:unitName)', {
+        unitName: unitName.trim(),
+      })
+      .getOne();
+  }
+
+  private findCategoryByName(
+    businessId: string,
+    categoryName: string,
+    categoriesRepository: Repository<CategoryEntity>,
+  ): Promise<CategoryEntity | null> {
+    return categoriesRepository
+      .createQueryBuilder('category')
+      .where('category.business_id = :businessId', { businessId })
+      .andWhere('LOWER(category.category_name) = LOWER(:categoryName)', {
+        categoryName: categoryName.trim(),
+      })
+      .getOne();
   }
 
   private mapProductItem(
