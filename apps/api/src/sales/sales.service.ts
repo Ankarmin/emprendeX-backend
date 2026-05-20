@@ -274,27 +274,29 @@ export class SalesService {
       order: { createdAt: 'DESC' },
     });
 
-    return orders.map((order) => {
-      const paidAmount = order.payments.reduce(
-        (sum, payment) =>
-          sum +
-          payment.paymentDetails.reduce(
-            (detailSum, detail) => detailSum + Number(detail.subtotal),
-            0,
-          ),
-        0,
-      );
-      const total = Number(order.quotation.total);
-      const balance = Math.max(total - paidAmount, 0);
+    return orders
+      .map((order) => {
+        const paidAmount = order.payments.reduce(
+          (sum, payment) =>
+            sum +
+            payment.paymentDetails.reduce(
+              (detailSum, detail) => detailSum + Number(detail.subtotal),
+              0,
+            ),
+          0,
+        );
+        const total = Number(order.quotation.total);
+        const balance = Math.max(total - paidAmount, 0);
 
-      return {
-        id: order.orderId,
-        referenceCode: order.referenceCode,
-        customerName: this.buildCustomerName(order.quotation.customer),
-        total: order.quotation.total,
-        balance: balance.toFixed(2),
-      };
-    });
+        return {
+          id: order.orderId,
+          referenceCode: order.referenceCode,
+          customerName: this.buildCustomerName(order.quotation.customer),
+          total: order.quotation.total,
+          balance: balance.toFixed(2),
+        };
+      })
+      .filter((order) => Number(order.balance) > 0);
   }
 
   private async getBusinessOrThrow(userId: string) {

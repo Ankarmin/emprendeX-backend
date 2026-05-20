@@ -137,28 +137,23 @@ export class FinanceService {
   }
 
   async listPaymentMethods(userId: string) {
-    const business = await this.getBusinessOrThrow(userId);
+    await this.getBusinessOrThrow(userId);
     return this.paymentMethodsRepository.find({
-      where: { businessId: business.businessId },
       order: { name: 'ASC' },
     });
   }
 
   async createPaymentMethod(userId: string, dto: CreatePaymentMethodDto) {
-    const business = await this.getBusinessOrThrow(userId);
+    await this.getBusinessOrThrow(userId);
     const normalizedName = dto.name.trim();
 
-    const existingPaymentMethod = await this.findPaymentMethodByName(
-      business.businessId,
-      normalizedName,
-    );
+    const existingPaymentMethod = await this.findPaymentMethodByName(normalizedName);
 
     if (existingPaymentMethod) {
       throw new ConflictException('El método de pago ya está registrado');
     }
 
     const paymentMethod = this.paymentMethodsRepository.create({
-      businessId: business.businessId,
       name: normalizedName,
     });
 
@@ -170,18 +165,12 @@ export class FinanceService {
     paymentMethodId: string,
     dto: UpdatePaymentMethodDto,
   ) {
-    const business = await this.getBusinessOrThrow(userId);
-    const paymentMethod = await this.getPaymentMethodOrThrow(
-      business.businessId,
-      paymentMethodId,
-    );
+    await this.getBusinessOrThrow(userId);
+    const paymentMethod = await this.getPaymentMethodOrThrow(paymentMethodId);
 
     if (dto.name) {
       const normalizedName = dto.name.trim();
-      const existingPaymentMethod = await this.findPaymentMethodByName(
-        business.businessId,
-        normalizedName,
-      );
+      const existingPaymentMethod = await this.findPaymentMethodByName(normalizedName);
 
       if (
         existingPaymentMethod &&
@@ -200,8 +189,8 @@ export class FinanceService {
     userId: string,
     paymentMethodId: string,
   ): Promise<void> {
-    const business = await this.getBusinessOrThrow(userId);
-    await this.getPaymentMethodOrThrow(business.businessId, paymentMethodId);
+    await this.getBusinessOrThrow(userId);
+    await this.getPaymentMethodOrThrow(paymentMethodId);
 
     const [paymentDetailsCount, expenseDetailsCount] = await Promise.all([
       this.paymentDetailsRepository.count({ where: { paymentMethodId } }),
@@ -214,10 +203,7 @@ export class FinanceService {
       );
     }
 
-    await this.paymentMethodsRepository.delete({
-      paymentMethodId,
-      businessId: business.businessId,
-    });
+    await this.paymentMethodsRepository.delete({ paymentMethodId });
   }
 
   async listFinancialCategories(userId: string) {
@@ -328,7 +314,6 @@ export class FinanceService {
     const paymentMethod = await this.paymentMethodsRepository.findOne({
       where: {
         paymentMethodId: dto.paymentMethodId,
-        businessId: business.businessId,
       },
     });
     if (!paymentMethod) {
@@ -402,7 +387,6 @@ export class FinanceService {
     const paymentMethod = await this.paymentMethodsRepository.findOne({
       where: {
         paymentMethodId: dto.paymentMethodId,
-        businessId: business.businessId,
       },
     });
     if (!paymentMethod) {
@@ -457,11 +441,10 @@ export class FinanceService {
   }
 
   private async getPaymentMethodOrThrow(
-    businessId: string,
     paymentMethodId: string,
   ) {
     const paymentMethod = await this.paymentMethodsRepository.findOne({
-      where: { paymentMethodId, businessId },
+      where: { paymentMethodId },
     });
 
     if (!paymentMethod) {
@@ -486,11 +469,10 @@ export class FinanceService {
     return financialCategory;
   }
 
-  private findPaymentMethodByName(businessId: string, name: string) {
+  private findPaymentMethodByName(name: string) {
     return this.paymentMethodsRepository
       .createQueryBuilder('paymentMethod')
-      .where('paymentMethod.business_id = :businessId', { businessId })
-      .andWhere('LOWER(paymentMethod.name) = LOWER(:name)', {
+      .where('LOWER(paymentMethod.name) = LOWER(:name)', {
         name: name.trim(),
       })
       .getOne();
