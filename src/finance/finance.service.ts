@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { ExpenseDetailEntity } from '../expenses/entities/expense-detail.entity';
@@ -10,8 +15,12 @@ import { PaymentEntity } from '../payments/entities/payment.entity';
 import { PaymentStatus } from '../database/database.enums';
 import { OrderEntity } from '../orders/entities/order.entity';
 import { UsersService } from '../users/users.service';
+import { CreateFinancialCategoryDto } from './dto/create-financial-category.dto';
 import { CreateExpenseDto } from './dto/create-expense.dto';
+import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UpdateFinancialCategoryDto } from './dto/update-financial-category.dto';
+import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 
 @Injectable()
 export class FinanceService {
@@ -127,8 +136,85 @@ export class FinanceService {
     );
   }
 
-  async listPaymentMethods() {
-    return this.paymentMethodsRepository.find({ order: { name: 'ASC' } });
+  async listPaymentMethods(userId: string) {
+    const business = await this.getBusinessOrThrow(userId);
+    return this.paymentMethodsRepository.find({
+      where: { businessId: business.businessId },
+      order: { name: 'ASC' },
+    });
+  }
+
+  async createPaymentMethod(userId: string, dto: CreatePaymentMethodDto) {
+    const business = await this.getBusinessOrThrow(userId);
+    const normalizedName = dto.name.trim();
+
+    const existingPaymentMethod = await this.findPaymentMethodByName(
+      business.businessId,
+      normalizedName,
+    );
+
+    if (existingPaymentMethod) {
+      throw new ConflictException('El método de pago ya está registrado');
+    }
+
+    const paymentMethod = this.paymentMethodsRepository.create({
+      businessId: business.businessId,
+      name: normalizedName,
+    });
+
+    return this.paymentMethodsRepository.save(paymentMethod);
+  }
+
+  async updatePaymentMethod(
+    userId: string,
+    paymentMethodId: string,
+    dto: UpdatePaymentMethodDto,
+  ) {
+    const business = await this.getBusinessOrThrow(userId);
+    const paymentMethod = await this.getPaymentMethodOrThrow(
+      business.businessId,
+      paymentMethodId,
+    );
+
+    if (dto.name) {
+      const normalizedName = dto.name.trim();
+      const existingPaymentMethod = await this.findPaymentMethodByName(
+        business.businessId,
+        normalizedName,
+      );
+
+      if (
+        existingPaymentMethod &&
+        existingPaymentMethod.paymentMethodId !== paymentMethod.paymentMethodId
+      ) {
+        throw new ConflictException('El método de pago ya está registrado');
+      }
+
+      paymentMethod.name = normalizedName;
+    }
+
+    return this.paymentMethodsRepository.save(paymentMethod);
+  }
+
+  async deletePaymentMethod(userId: string, paymentMethodId: string): Promise<void> {
+    const business = await this.getBusinessOrThrow(userId);
+    await this.getPaymentMethodOrThrow(business.businessId, paymentMethodId);
+
+    const [paymentDetailsCount, expenseDetailsCount] = await Promise.all([
+      this.paymentDetailsRepository.count({ where: { paymentMethodId } }),
+      this.expenseDetailsRepository.count({ where: { paymentMethodId } }),
+    ]);
+
+    if (paymentDetailsCount > 0 || expenseDetailsCount > 0) {
+      throw new ConflictException(
+        'No se puede eliminar el método de pago porque ya tiene registros asociados',
+      );
+    }
+
+    await this.paymentMethodsRepository.delete({
+      paymentMethodId,
+      businessId: business.businessId,
+    });
   }
 
   async listFinancialCategories(userId: string) {
@@ -136,6 +222,88 @@ export class FinanceService {
     return this.financialCategoriesRepository.find({
       where: { businessId: business.businessId },
       order: { name: 'ASC' },
+    });
+  }
+
+  async createFinancialCategory(
+    userId: string,
+    dto: CreateFinancialCategoryDto,
+  ) {
+    const business = await this.getBusinessOrThrow(userId);
+    const normalizedName = dto.name.trim();
+
+    const existingCategory = await this.findFinancialCategoryByName(
+      business.businessId,
+      normalizedName,
+    );
+
+    if (existingCategory) {
+      throw new ConflictException('La categoría financiera ya está registrada');
+    }
+
+    const financialCategory = this.financialCategoriesRepository.create({
+      businessId: business.businessId,
+      name: normalizedName,
+    });
+
+    return this.financialCategoriesRepository.save(financialCategory);
+  }
+
+  async updateFinancialCategory(
+    userId: string,
+    financialCategoryId: string,
+    dto: UpdateFinancialCategoryDto,
+  ) {
+    const business = await this.getBusinessOrThrow(userId);
+    const financialCategory = await this.getFinancialCategoryOrThrow(
+      business.businessId,
+      financialCategoryId,
+    );
+
+    if (dto.name) {
+      const normalizedName = dto.name.trim();
+      const existingCategory = await this.findFinancialCategoryByName(
+        business.businessId,
+        normalizedName,
+      );
+
+      if (
+        existingCategory &&
+        existingCategory.financialCategoryId !==
+          financialCategory.financialCategoryId
+      ) {
+        throw new ConflictException('La categoría financiera ya está registrada');
+      }
+
+      financialCategory.name = normalizedName;
+    }
+
+    return this.financialCategoriesRepository.save(financialCategory);
+  }
+
+  async deleteFinancialCategory(
+    userId: string,
+    financialCategoryId: string,
+  ): Promise<void> {
+    const business = await this.getBusinessOrThrow(userId);
+    await this.getFinancialCategoryOrThrow(
+      business.businessId,
+      financialCategoryId,
+    );
+
+    const expensesCount = await this.expensesRepository.count({
+      where: { financialCategoryId },
+    });
+
+    if (expensesCount > 0) {
+      throw new ConflictException(
+        'No se puede eliminar la categoría financiera porque ya tiene gastos asociados',
+      );
+    }
+
+    await this.financialCategoriesRepository.delete({
+      financialCategoryId,
+      businessId: business.businessId,
     });
   }
 
@@ -153,7 +321,10 @@ export class FinanceService {
     }
 
     const paymentMethod = await this.paymentMethodsRepository.findOne({
-      where: { paymentMethodId: dto.paymentMethodId },
+      where: {
+        paymentMethodId: dto.paymentMethodId,
+        businessId: business.businessId,
+      },
     });
     if (!paymentMethod) {
       throw new BadRequestException('Método de pago inválido');
@@ -224,7 +395,10 @@ export class FinanceService {
     }
 
     const paymentMethod = await this.paymentMethodsRepository.findOne({
-      where: { paymentMethodId: dto.paymentMethodId },
+      where: {
+        paymentMethodId: dto.paymentMethodId,
+        businessId: business.businessId,
+      },
     });
     if (!paymentMethod) {
       throw new BadRequestException('Método de pago inválido');
@@ -275,6 +449,56 @@ export class FinanceService {
       throw new BadRequestException('Business profile is not configured');
     }
     return business;
+  }
+
+  private async getPaymentMethodOrThrow(
+    businessId: string,
+    paymentMethodId: string,
+  ) {
+    const paymentMethod = await this.paymentMethodsRepository.findOne({
+      where: { paymentMethodId, businessId },
+    });
+
+    if (!paymentMethod) {
+      throw new NotFoundException('Método de pago no encontrado');
+    }
+
+    return paymentMethod;
+  }
+
+  private async getFinancialCategoryOrThrow(
+    businessId: string,
+    financialCategoryId: string,
+  ) {
+    const financialCategory = await this.financialCategoriesRepository.findOne({
+      where: { financialCategoryId, businessId },
+    });
+
+    if (!financialCategory) {
+      throw new NotFoundException('Categoría financiera no encontrada');
+    }
+
+    return financialCategory;
+  }
+
+  private findPaymentMethodByName(businessId: string, name: string) {
+    return this.paymentMethodsRepository
+      .createQueryBuilder('paymentMethod')
+      .where('paymentMethod.business_id = :businessId', { businessId })
+      .andWhere('LOWER(paymentMethod.name) = LOWER(:name)', {
+        name: name.trim(),
+      })
+      .getOne();
+  }
+
+  private findFinancialCategoryByName(businessId: string, name: string) {
+    return this.financialCategoriesRepository
+      .createQueryBuilder('financialCategory')
+      .where('financialCategory.business_id = :businessId', { businessId })
+      .andWhere('LOWER(financialCategory.name) = LOWER(:name)', {
+        name: name.trim(),
+      })
+      .getOne();
   }
 
   private async sumPaymentsForOrder(orderId: string) {
