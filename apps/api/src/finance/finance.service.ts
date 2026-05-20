@@ -196,7 +196,10 @@ export class FinanceService {
     return this.paymentMethodsRepository.save(paymentMethod);
   }
 
-  async deletePaymentMethod(userId: string, paymentMethodId: string): Promise<void> {
+  async deletePaymentMethod(
+    userId: string,
+    paymentMethodId: string,
+  ): Promise<void> {
     const business = await this.getBusinessOrThrow(userId);
     await this.getPaymentMethodOrThrow(business.businessId, paymentMethodId);
 
@@ -272,7 +275,9 @@ export class FinanceService {
         existingCategory.financialCategoryId !==
           financialCategory.financialCategoryId
       ) {
-        throw new ConflictException('La categoría financiera ya está registrada');
+        throw new ConflictException(
+          'La categoría financiera ya está registrada',
+        );
       }
 
       financialCategory.name = normalizedName;

@@ -73,7 +73,7 @@ describe('AppModule (e2e)', () => {
   });
 
   it('/ (GET) returns not found when no root route is registered', () => {
-    return request(app.getHttpServer()).get('/').expect(404);
+    return request(app!.getHttpServer()).get('/').expect(404);
   });
 
   afterEach(async () => {

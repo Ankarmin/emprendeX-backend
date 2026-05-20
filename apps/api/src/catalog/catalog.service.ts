@@ -50,14 +50,14 @@ type ProductosServiciosItemResponse = {
   sku: string | null;
   price: string;
   createdAt: string;
-    product: {
-      productId: string;
-      stock: number;
-      unit: {
-        unitId: string;
-        unitName: string;
-      };
-    } | null;
+  product: {
+    productId: string;
+    stock: number;
+    unit: {
+      unitId: string;
+      unitName: string;
+    };
+  } | null;
   service: {
     serviceId: string;
     category: {

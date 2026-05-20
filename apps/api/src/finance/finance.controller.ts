@@ -70,7 +70,10 @@ export class FinanceController {
     @CurrentUser() currentUser: AuthenticatedUser,
     @Param('paymentMethodId', new ParseUUIDPipe()) paymentMethodId: string,
   ): Promise<void> {
-    await this.financeService.deletePaymentMethod(currentUser.id, paymentMethodId);
+    await this.financeService.deletePaymentMethod(
+      currentUser.id,
+      paymentMethodId,
+    );
   }
 
   @Get('financial-categories')
@@ -90,7 +93,8 @@ export class FinanceController {
   @Patch('financial-categories/:financialCategoryId')
   updateFinancialCategory(
     @CurrentUser() currentUser: AuthenticatedUser,
-    @Param('financialCategoryId', new ParseUUIDPipe()) financialCategoryId: string,
+    @Param('financialCategoryId', new ParseUUIDPipe())
+    financialCategoryId: string,
     @Body() dto: UpdateFinancialCategoryDto,
   ) {
     return this.financeService.updateFinancialCategory(
@@ -104,7 +108,8 @@ export class FinanceController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteFinancialCategory(
     @CurrentUser() currentUser: AuthenticatedUser,
-    @Param('financialCategoryId', new ParseUUIDPipe()) financialCategoryId: string,
+    @Param('financialCategoryId', new ParseUUIDPipe())
+    financialCategoryId: string,
   ): Promise<void> {
     await this.financeService.deleteFinancialCategory(
       currentUser.id,

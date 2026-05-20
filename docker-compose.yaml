@@ -4,10 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - ./apps/api/.env
     environment:
       POSTGRES_HOST: db
-      DATABASE_PUBLIC_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}
+      DATABASE_PUBLIC_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-emprendex}
     ports:
       - '${PORT:-3000}:${PORT:-3000}'
     depends_on:
@@ -22,7 +22,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     ports:
-      - '${POSTGRES_PORT:-5432}:5432'
+      - '${POSTGRES_PORT:-5433}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
